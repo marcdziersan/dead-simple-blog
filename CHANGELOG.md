@@ -16,6 +16,7 @@
 - 🔧 General enhancements & minor bug fixes
 - 🔧 Back to overview link
 - 🚀 Build own theme
+- Mini Admin Backend
 
 ---
 
