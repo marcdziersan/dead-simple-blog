@@ -1,89 +1,116 @@
 <?php
-require_once('Parsedown.php');
-
-// Default config is now found in 'config-default.php', but it's best not to edit that directly.
-// Instead, duplicate it and rename the new version 'config-custom.php' (no quotes).
-// If you're using Git for version control, add config-custom.php to your .gitignore.
-// Then you can do pull/fetch/rebase in Git and it won't overwrite your config.
-if (file_exists('config-custom.php')) {
-	require_once('config-custom.php');
-} else {
-	require_once('config-default.php');
-}
+include 'config.php';
+include 'Parsedown.php';
 
 $content = '';
-$is_post = !empty($_GET['post']);		// Whether we're viewing the main list or a single post
+$parsedown = new Parsedown();
 
-function sortPosts($a, $b) {
-	$a_value = $a->getFilename();
-	$b_value = $b->getFilename();
-	return strcmp($b_value, $a_value); // Reversed to get descending
-}
+if (!empty($_GET['post'])) {
+    $post_param = $_GET['post'];
+    $post_id = preg_replace('/[^a-zA-Z0-9_-]/', '', $post_param);
+    $file_path = __DIR__ . '/content/' . $post_id . '.txt';
 
-if ( $is_post ) {
-	// Single post page
-	$post_name = filter_var($_GET['post'], FILTER_SANITIZE_NUMBER_INT);
-	$file_path = __DIR__.'/content/'.$post_name.'.'.FILE_EXT;
-	if ( file_exists($file_path) ) {
-		$file = fopen($file_path, 'r');
-		$post_title = trim(fgets($file),'#');
-		fclose($file);
-		// Process the Markdown
-		$parsedown = new Parsedown();
-		$content = $parsedown->text(file_get_contents($file_path));
-	} else {
-		$content = '
-			<h2>Not Found</h2>
-			<p>Sorry, couldn\'t find a post with that name. Please try again, or go to the 
-			<a href="'.BASE_URL.'">home page</a> to select a different post.</p>';
-	}
+    if (file_exists($file_path)) {
+        $file = fopen($file_path, 'r');
+        $post_title = trim(fgets($file), '#');
+        fclose($file);
+
+        // Back-Button hinzufügen
+        $content = '<p><a href="' . $base_url . '" class="back-button">&larr; Back to overview</a></p>';
+        $content .= $parsedown->text(file_get_contents($file_path));
+    } else {
+        $post_title = 'Not Found';
+        $content = '<h2>Not Found</h2><p><a href="' . $base_url . '">Back to home</a></p>';
+    }
+
+    // Kommentare laden
+    $comments_file = __DIR__ . '/comments/' . $post_id . '.json';
+    $comments = file_exists($comments_file) ? json_decode(file_get_contents($comments_file), true) : [];
+
+    // Kommentare in Parent/Child aufteilen
+    $main_comments = [];
+    $replies = [];
+
+    foreach ($comments as $comment) {
+        if (empty($comment['parent'])) {
+            $main_comments[] = $comment;
+        } else {
+            $replies[$comment['parent']][] = $comment;
+        }
+    }
+
+    function render_comment($comment, $replies) {
+        $html = '<div class="comment">';
+        $html .= '<strong>' . htmlspecialchars($comment['name']) . ':</strong><br>';
+        $html .= '<p>' . nl2br(htmlspecialchars($comment['message'])) . '</p>';
+
+        // Antwortformular
+        $html .= <<<HTML
+<p><a href="#" class="toggle-reply" data-target="reply-form-{$comment['id']}">Reply</a></p>
+<div class="reply-form-container" id="reply-form-{$comment['id']}" style="display:none;">
+<form method="post" action="save_comment.php" class="reply-form">
+    <input type="hidden" name="post_id" value="{$GLOBALS['post_id']}" />
+    <input type="hidden" name="parent" value="{$comment['id']}" />
+    <p><input type="text" name="name" placeholder="Your name" required></p>
+    <p><textarea name="message" placeholder="Reply to this comment" required></textarea></p>
+    <p><button type="submit">Reply</button></p>
+</form>
+</div>
+HTML;
+
+        // Antworten rendern
+        if (!empty($replies[$comment['id']])) {
+            foreach ($replies[$comment['id']] as $reply) {
+                $html .= '<div class="reply">' . render_comment($reply, $replies) . '</div>';
+            }
+        }
+
+        $html .= '</div>';
+        return $html;
+    }
+
+    $comment_html = '<section class="comments"><h3>Comments</h3>';
+    foreach ($main_comments as $c) {
+        $comment_html .= render_comment($c, $replies);
+    }
+
+    // Haupt-Kommentarformular
+    $comment_html .= <<<HTML
+<h4>Leave a comment</h4>
+<form method="post" action="save_comment.php">
+    <input type="hidden" name="post_id" value="{$post_id}" />
+    <input type="hidden" name="parent" value="" />
+    <p><input type="text" name="name" placeholder="Your name" required></p>
+    <p><textarea name="message" placeholder="Your comment" required></textarea></p>
+    <p><button type="submit">Send</button></p>
+</form>
+</section>
+HTML;
+
+    $comment = $comment_html;
+
 } else {
-	// Blog main page - list all posts
-	$files = new DirectoryIterator(__DIR__.'/content/');
-	$files_array = [];
-	foreach ($files as $file) {
-		if ( $file->isFile() && $file->getExtension() == FILE_EXT ) {
-			array_push($files_array, $file->getFileInfo());
-		}
-	}
-	usort($files_array, 'sortPosts'); // See sortPosts() function above
-	foreach ($files_array as $file) {
-		$filename_no_ext = $file->getBasename('.'.FILE_EXT);
-		$file_pointer = $file->openFile();
-		$post_title = trim($file_pointer->fgets(),'#');
-		$content .= '<h2 class="list-title"><a href="'.BASE_URL.'?post='.$filename_no_ext.'">'.$filename_no_ext.' - '.$post_title.'</a></h2>';
-	}
+    $post_title = 'All Posts';
+    $comment = '';
+    $directory = new DirectoryIterator(__DIR__ . '/content/');
+    foreach ($directory as $file) {
+        if ($file->isFile() && $file->getExtension() === 'txt') {
+            $filename_no_ext = $file->getBasename('.txt');
+            $file_path = $file->getPathname();
+            $handle = fopen($file_path, 'r');
+            $title = trim(fgets($handle), '#');
+            fclose($handle);
+
+            $content .= '<h2 class="title"><a href="' . $base_url . '?post=' . $filename_no_ext . '">' . $filename_no_ext . ' - ' . htmlspecialchars($title) . '</a></h2>';
+        }
+    }
 }
 
-// Appending file hashes to the <link> hrefs allows us to cache the files indefinitely, 
-// but immediately serve a new version once the file changes.
-$style_hash = hash('md5', file_get_contents(__DIR__.'/src/css/style-'.APPEARANCE.'.css'));
-$fonts_hash = hash('md5', file_get_contents(__DIR__.'/src/css/fonts.css'));
-$icon_hash  = hash('md5', file_get_contents(__DIR__.'/img/favicon.png'));
-
+// Theme laden
+$theme = __DIR__ . '/themes/' . $blog_theme . '/theme.php';
+if (file_exists($theme)) {
+    require_once $theme;
+} else {
+    require __DIR__ . '/themes/default/theme.php';
+}
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-	<title><?php if ( !empty($_GET['post']) ) { echo $post_title.' - '; } ?><?php echo BLOG_TITLE; ?></title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="stylesheet" href="src/css/style-<?php echo APPEARANCE; ?>.css?v=<?php echo $style_hash; ?>" />
-	<link rel="stylesheet" href="src/css/fonts.css?v=<?php echo $fonts_hash; ?>" />
-	<link rel="icon" type="image/png" href="img/favicon.png?v=<?php echo $icon_hash; ?>" />
-</head>
-<body>
-	<header>
-		<h1 class="blog-title"><a href="<?php echo BASE_URL; ?>"><?php echo BLOG_TITLE; ?></a></h1>
-	</header>
-	<?php 
-	$tag = $is_post ? 'article' : 'main';
-	echo '<'.$tag.'>'.$content.'</'.$tag.'>';
-	?>
-	<footer>
-		<p class="postscript">This blog does not offer comment functionality. If you'd like to discuss any of the topics 
-		written about here, you can <a href="mailto:<?php echo CONTACT_EMAIL; ?>">send me an email</a>.</p>
-		<hr />
-		<p class="powered-by">Powered by text files and <a href="https://github.com/paintedsky/dead-simple-blog" target="_blank">Dead Simple Blog</a>.</p>
-	</footer>
-</body>
-</html>
