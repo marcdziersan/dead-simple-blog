@@ -57,6 +57,6 @@ $contact_country = 'Deutschland';
 $contact_email = 'your email';
 $contact_number = '+0123456789';
 ```
-<a href="https://github.com/paintedsky/dead-simple-blog">Original</a><br>
-<a href="https://github.com/shoaiyb/dead-simple-blog">Fork from paintedsky -> Theme and disqus</a><br>
-<a href="https://github.com/marcdziersan/dead-simple-blog">Fork from shoaiyb -> Theme and own comments system</a>
+<a href="https://github.com/paintedsky/dead-simple-blog">paintedsky Original</a><br>
+<a href="https://github.com/shoaiyb/dead-simple-blog">shoaiyb -> Theme and disqus</a><br>
+<a href="https://github.com/marcdziersan/dead-simple-blog">marcdziersan -> Theme and own comments system</a>
