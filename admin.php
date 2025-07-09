@@ -51,7 +51,6 @@ function list_comments() {
     return $output;
 }
 
-// Aktionen
 if ($auth) {
     if (isset($_GET['delete'])) {
         $file = "content/" . basename($_GET['delete']) . ".txt";
@@ -79,6 +78,37 @@ if ($auth) {
             $message = "Missing slug or content.";
         }
     }
+
+    // Bild-Upload
+    $upload_dir = __DIR__ . '/media/';
+    $upload_url = 'media/';
+    $upload_feedback = '';
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['image'])) {
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $max_size = 2 * 1024 * 1024;
+
+        if ($_FILES['image']['error'] === 0) {
+            $file_tmp = $_FILES['image']['tmp_name'];
+            $file_name = basename($_FILES['image']['name']);
+            $file_type = mime_content_type($file_tmp);
+            $file_size = $_FILES['image']['size'];
+
+            if (in_array($file_type, $allowed_types) && $file_size <= $max_size) {
+                $clean_name = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $file_name);
+                $target_path = $upload_dir . $clean_name;
+
+                if (move_uploaded_file($file_tmp, $target_path)) {
+                    $upload_feedback = "✅ Upload successful: <code>{$upload_url}{$clean_name}</code>";
+                } else {
+                    $upload_feedback = "❌ Failed to move uploaded file.";
+                }
+            } else {
+                $upload_feedback = "❌ Invalid file type or file too large.";
+            }
+        } else {
+            $upload_feedback = "❌ Upload error.";
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -94,10 +124,12 @@ if ($auth) {
         form { margin-bottom: 2rem; background: white; padding: 1rem; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         ul { padding-left: 1.2rem; }
         .message { background: #def; padding: 1rem; border-left: 4px solid #39f; margin-bottom: 1rem; }
+        code { background: #eee; padding: 2px 4px; }
+        img { max-width: 200px; height: auto; display: block; margin-top: 0.5rem; }
     </style>
 </head>
 <body>
-<h1>🔒 Admin Panel</h1>
+<h1>🔐 Admin Panel</h1>
 <?php if ($message): ?>
     <div class="message"><?= $message ?></div>
 <?php endif; ?>
@@ -127,6 +159,30 @@ if ($auth) {
         <?= list_posts(); ?>
         <hr>
         <?= list_comments(); ?>
+        <hr>
+        <h3>🖼️ Upload Image</h3>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="image" required>
+            <button type="submit">Upload</button>
+        </form>
+        <?php if (!empty($upload_feedback)) echo "<div class='message'>$upload_feedback</div>"; ?>
+
+        <h4>📂 Uploaded Images</h4>
+        <?php
+        foreach (glob("media/*.*") as $file) {
+            $url = $upload_url . basename($file);
+            $size_kb = round(filesize($file) / 1024, 1);
+            $markdown = "![]($url)";
+            $html = htmlspecialchars("<img src='$url' width='400'>");
+            echo "<div style='margin-bottom:1rem; padding:0.5rem; background:#fff; border:1px solid #ccc;'>";
+            echo "<strong>" . basename($file) . "</strong> ({$size_kb} KB)<br>";
+            echo "🔗 URL: <code>$url</code><br>";
+            echo "🧃 Markdown: <code>$markdown</code><br>";
+            echo "📄 HTML: <code>$html</code><br>";
+            echo "<img src='$url' alt=''>";
+            echo "</div>";
+        }
+        ?>
     <?php endif; ?>
 <?php endif; ?>
 </body>
