@@ -17,6 +17,7 @@
 - 🔧 Back to overview link
 - 🚀 Build own theme
 - Mini Admin Backend
+- Image Upload in Admin backend
 
 ---
 
