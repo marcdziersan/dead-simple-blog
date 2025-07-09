@@ -1,6 +1,6 @@
 # 📝 CHANGELOG
 
-## v1.3 – 2025-07-09  
+## 2025-07-09  
 **Marcus Dziersan – Extension of the fork with a custom comment system**
 
 - ✨ Custom comment system with JSON storage (`/comments/[id].json`)
@@ -13,11 +13,13 @@
 - 🧱 Improved HTML and CSS structure for better readability
 - 📄 New pages: `imprint.php`, `policy.php` using the same layout
 - 📜 Updated MIT License: Marcus Dziersan added as contributor
-- General enhancements & minor bug fixes
+- 🔧 General enhancements & minor bug fixes
+- 🔧 Back to overview link
+- 🚀 Build own theme
 
 ---
 
-## v1.2 – 2022  
+## 2022  
 **Shoaiyb Sysa – Fork of the original by Painted Sky Studios**
 
 - Code structure cleanup
@@ -26,7 +28,7 @@
 
 ---
 
-## v1.1 – 2018  
+## 2018  
 **Painted Sky Studios – Original version**
 
 - ✅ Updated Parsedown to v1.7.4
