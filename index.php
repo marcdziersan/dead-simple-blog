@@ -87,7 +87,9 @@ HTML;
 </section>
 HTML;
 
-    $comment = $comment_html;
+    $comment = $blog_comment
+    ? $comment_html
+    : '<p class="no-comments">Commenting is currently disabled.</p>';
 
 } else {
     $post_title = 'All Posts';
