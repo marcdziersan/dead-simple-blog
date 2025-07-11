@@ -2,7 +2,7 @@
 
 ## 2025-07-11
 
-- 📝 Parsedown 1.8.0 http://parsedown.org
+- 📝 Updated Parsedown 1.8.0 http://parsedown.org
 
 ## 2025-07-09  
 **Marcus Dziersan – Extension of the fork with a custom comment system**
