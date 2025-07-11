@@ -2,6 +2,7 @@
 
 ## 2025-07-11
 
+- 🧱 Bootstrap colorful theme (simple but nice)
 - 📝 Updated Parsedown 1.7.1 / 1.7.4 -> 1.8.0 http://parsedown.org
 
 ## 2025-07-09  
